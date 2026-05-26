@@ -5,15 +5,43 @@ app.use(express.json());
 
 const MAIN_TOKEN = '8939546326:AAFlKtd9tKL5LAZKdJIqZNQZeUUry7IFNuc';
 const AGENT_TOKEN = '8747273381:AAGZPgp091yMSwf0UQhGbhh_cQOxK7anBoE';
-const AGENT_CHAT_ID = '8231669195'; // Paula
+const AGENT_CHAT_ID = '8231669195';
 const WHATSAPP = 'https://wa.me/5511981716393';
 const MAIN_API = `https://api.telegram.org/bot${MAIN_TOKEN}`;
 const AGENT_API = `https://api.telegram.org/bot${AGENT_TOKEN}`;
 
 // Sessoes dos usuarios
 const sessions = {};
-// Mapa: agentMsgId -> userId (para o atendente responder em modo reply)
-const replyMap = {};
+
+// Codigos curtos para atendimento: codigo -> userId e userId -> codigo
+const codigos = {};
+const userCodigos = {};
+
+function gerarCodigo() {
+  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let cod;
+  do {
+    cod = Array.from({ length: 4 }, () => letras[Math.floor(Math.random() * letras.length)]).join('');
+  } while (codigos[cod]);
+  return cod;
+}
+
+function getCodigo(userId) {
+  if (!userCodigos[userId]) {
+    const cod = gerarCodigo();
+    userCodigos[userId] = cod;
+    codigos[cod] = userId;
+  }
+  return userCodigos[userId];
+}
+
+function liberarCodigo(userId) {
+  const cod = userCodigos[userId];
+  if (cod) {
+    delete codigos[cod];
+    delete userCodigos[userId];
+  }
+}
 
 function getSession(userId) {
   if (!sessions[userId]) {
@@ -97,7 +125,7 @@ async function sendNaoAlcoolicas(chatId) {
     '4. Pepsi 2L - R$ 10,00\n' +
     '5. Pepsi 350ml - R$ 5,00\n' +
     '6. Dolly Guarana 2L - R$ 7,00\n' +
-    '7. Guarana Antarcita 2L - R$ 9,00\n' +
+    '7. Guarana Antarctica 2L - R$ 9,00\n' +
     '8. Guarana Antarctica 350ml - R$ 5,00\n' +
     '9. Fanta Laranja 2L - R$ 10,00\n' +
     '10. Fanta Laranja 350ml - R$ 6,00\n' +
@@ -123,6 +151,49 @@ async function sendSalgadinhos(chatId) {
     [['Ver Carrinho', 'Voltar ao Menu']]
   );
 }
+
+// Sugestoes por perfil
+const sugestoes = {
+  suave: {
+    titulo: 'Sugestoes para paladar *Suave*',
+    descricao: 'Bebidas leves, refrescantes e de baixa amargor. Ideais para quem prefere sabores delicados.',
+    itens: [
+      'Cerveja Brahma 269ml - R$ 5,00',
+      'Cerveja Imperio 269ml - R$ 5,00',
+      'Smirnoff Ice 275ml - R$ 8,00',
+      '51 Ice 275ml - R$ 7,00',
+      'Cabare Ice 275ml - R$ 7,00',
+      'Leev Ice 275ml - R$ 7,00',
+      'Pitu com Limao 350ml - R$ 6,00',
+    ]
+  },
+  mediana: {
+    titulo: 'Sugestoes para paladar *Mediano*',
+    descricao: 'Bebidas com corpo equilibrado, nem muito leves nem muito intensas. O melhor dos dois mundos.',
+    itens: [
+      'Cerveja Budweiser 269ml - R$ 6,00',
+      'Cerveja Eisenbahn 269ml - R$ 6,00',
+      'Caixa Heineken 8x269ml - R$ 32,00',
+      'Caixa Amstel 8x269ml - R$ 29,00',
+      'Skol Beats 269ml - R$ 9,00',
+      'Caracu 350ml - R$ 6,00',
+      '51 Original 1L - R$ 16,00',
+    ]
+  },
+  encorpada: {
+    titulo: 'Sugestoes para paladar *Encorpado*',
+    descricao: 'Bebidas com sabor intenso, mais amargas ou com maior teor alcoolico. Para os apreciadores.',
+    itens: [
+      'Caixa Spaten 8x269ml - R$ 29,00',
+      'Caixa Skol Malte 15un - R$ 46,00',
+      'Caixa Skol Beats 8un - R$ 48,00',
+      'Pitu 1L - R$ 28,00',
+      'Velho Barreiro 1L - R$ 20,00',
+      'Cabare 1L - R$ 25,00',
+      'Ypioca 1L - R$ 20,00',
+    ]
+  }
+};
 
 function parsePreco(texto) {
   const match = texto.match(/R\$\s*([\d,]+)/);
@@ -171,7 +242,6 @@ function encontrarProduto(texto, lista) {
   return lista.find(p => p.toLowerCase().includes(lower)) || null;
 }
 
-
 async function adicionarItens(userId, txt, lista, session) {
   const partes = txt.split(/[\s,;]+/).filter(p => p.trim().length > 0);
   const adicionados = [];
@@ -211,13 +281,13 @@ async function processarMensagem(userId, texto, userName) {
     if (txt.toLowerCase() === '/sair') {
       session.aguardandoAtendente = false;
       session.step = 'menu';
+      liberarCodigo(userId);
       await sendMessage(userId, 'Atendimento encerrado. Obrigado!');
       await sendMenu(userId);
       await sendAgentMessage(`Atendimento com *${userName}* encerrado pelo usuario.`);
     } else {
-      // Repassa mensagem ao atendente via AGENT bot, salva msg id para reply
-      const result = await sendAgentMessage(`*${userName}:*\n${txt}`);
-      if (result) replyMap[result.message_id] = userId;
+      const cod = getCodigo(userId);
+      await sendAgentMessage(`[${cod}] *${userName}:*\n${txt}`);
     }
     return;
   }
@@ -235,6 +305,12 @@ async function processarMensagem(userId, texto, userName) {
   if (txt === 'Voltar ao Menu' || txt.toLowerCase() === 'menu') {
     session.step = 'menu';
     await sendMenu(userId);
+    return;
+  }
+
+  if (txt === 'Voltar ao Cardapio' || txt.toLowerCase() === 'voltar ao cardapio') {
+    session.step = 'cardapio';
+    await sendCardapio(userId);
     return;
   }
 
@@ -288,12 +364,11 @@ async function processarMensagem(userId, texto, userName) {
       if (txt === 'Sim') {
         session.aguardandoAtendente = true;
         session.step = 'atendente';
+        const cod = getCodigo(userId);
         await sendMessage(userId, 'Certo! Nossa equipe foi notificada e vai te responder por aqui.\n\nPode mandar sua mensagem. Para encerrar, digite /sair.');
-        const result = await sendAgentMessage(
-          `*Novo atendimento solicitado*\n\nCliente: ${userName} (${userId})\n\nResponda nesta conversa. Para encerrar, envie:\n/encerrar ${userId}`,
-          [[`/encerrar ${userId}`]]
+        await sendAgentMessage(
+          `*Novo atendimento solicitado*\n\nCliente: ${userName}\nCodigo: \`${cod}\`\n\nResponda: /reply ${cod} mensagem\nEncerrar: /encerrar ${cod}`
         );
-        if (result) replyMap[result.message_id] = userId;
       } else {
         session.step = 'menu';
         await sendMenu(userId);
@@ -317,14 +392,72 @@ async function processarMensagem(userId, texto, userName) {
 
     case 'verificar_idade':
       if (txt === 'Sim, tenho 18+') {
-        session.step = 'alcoolicas';
-        await sendBebidasAlcoolicas(userId);
+        session.step = 'perfil_bebida';
+        await sendMessage(userId,
+          'Qual o seu perfil de paladar?\n\nEscolha uma opcao para ver sugestoes personalizadas ou veja o cardapio completo:',
+          [['Suave', 'Mediano', 'Encorpado'], ['Ver cardapio completo'], ['Voltar ao Cardapio']]
+        );
       } else {
         await sendMessage(userId, 'Venda de bebidas alcoolicas proibida para menores de 18 anos (Lei 13.106/15).');
         session.step = 'cardapio';
         await sendCardapio(userId);
       }
       break;
+
+    case 'perfil_bebida': {
+      let perfil = null;
+      if (txt === 'Suave') perfil = 'suave';
+      else if (txt === 'Mediano') perfil = 'mediana';
+      else if (txt === 'Encorpado') perfil = 'encorpada';
+      else if (txt === 'Ver cardapio completo') {
+        session.step = 'alcoolicas';
+        await sendBebidasAlcoolicas(userId);
+        break;
+      }
+
+      if (perfil) {
+        const s = sugestoes[perfil];
+        const lista = s.itens.map((item, i) => `${i + 1}. ${item}`).join('\n');
+        session.step = 'sugestoes_' + perfil;
+        await sendMessage(userId,
+          `${s.titulo}\n\n_${s.descricao}_\n\n${lista}\n\nDigite o *numero* do produto para adicionar ao carrinho:`,
+          [['Ver Carrinho'], ['Ver cardapio completo', 'Voltar ao Cardapio'], ['Voltar ao Menu']]
+        );
+      } else {
+        await sendMessage(userId, 'Escolha uma opcao:', [
+          ['Suave', 'Mediano', 'Encorpado'],
+          ['Ver cardapio completo'],
+          ['Voltar ao Cardapio']
+        ]);
+      }
+      break;
+    }
+
+    case 'sugestoes_suave':
+    case 'sugestoes_mediana':
+    case 'sugestoes_encorpada': {
+      const perfil = session.step.replace('sugestoes_', '');
+      if (txt === 'Ver cardapio completo') {
+        session.step = 'alcoolicas';
+        await sendBebidasAlcoolicas(userId);
+        break;
+      }
+      // Tenta adicionar da lista de sugestoes
+      const listaS = sugestoes[perfil].itens;
+      const num = parseInt(txt);
+      if (!isNaN(num) && num >= 1 && num <= listaS.length) {
+        const prod = listaS[num - 1];
+        session.carrinho.push(prod);
+        session.total += parsePreco(prod);
+        await sendMessage(userId,
+          `*${prod}* adicionado ao carrinho!\n\nTotal atual: R$ ${session.total.toFixed(2)}`,
+          [['Ver Carrinho'], ['Ver cardapio completo', 'Voltar ao Cardapio'], ['Voltar ao Menu']]
+        );
+      } else {
+        await sendMessage(userId, 'Digite o numero do produto da lista acima.');
+      }
+      break;
+    }
 
     case 'alcoolicas': {
       await adicionarItens(userId, txt, produtosAlcoolicos, session);
@@ -347,7 +480,7 @@ async function processarMensagem(userId, texto, userName) {
   }
 }
 
-// Webhook do bot PRINCIPAL — mensagens dos usuarios
+// Webhook do bot PRINCIPAL
 app.post('/webhook-main', async (req, res) => {
   try {
     const msg = req.body.message;
@@ -362,52 +495,59 @@ app.post('/webhook-main', async (req, res) => {
   }
 });
 
-// Webhook do AGENT BOT — atendente responde via conversa privada
+// Webhook do AGENT BOT — atendente responde com /reply CODIGO mensagem
 app.post('/webhook', async (req, res) => {
   try {
     const msg = req.body.message;
     if (!msg || !msg.text) return res.sendStatus(200);
-
-    // So aceita mensagens da Paula
     if (String(msg.chat.id) !== String(AGENT_CHAT_ID)) return res.sendStatus(200);
 
     const txt = msg.text.trim();
 
-    // Comando /encerrar userId
-    const matchEncerrar = txt.match(/^\/encerrar\s+(\S+)/);
+    // /encerrar CODIGO
+    const matchEncerrar = txt.match(/^\/encerrar\s+(\S+)/i);
     if (matchEncerrar) {
-      const uid = matchEncerrar[1];
-      const sess = sessions[uid];
+      const cod = matchEncerrar[1].toUpperCase();
+      const uid = codigos[cod];
+      const sess = uid ? sessions[uid] : null;
       if (!sess || !sess.aguardandoAtendente) {
-        await sendAgentMessage('Atendimento nao encontrado ou ja encerrado.');
+        await sendAgentMessage(`Codigo ${cod} nao encontrado ou ja encerrado.`);
         return res.sendStatus(200);
       }
       sess.aguardandoAtendente = false;
       sess.step = 'menu';
-      await sendAgentMessage(`Atendimento com *${sess.userName}* encerrado.`);
+      liberarCodigo(uid);
+      await sendAgentMessage(`Atendimento *${cod}* encerrado.`);
       await sendMessage(uid, 'Atendimento encerrado pelo atendente. Obrigado!');
       await sendMenu(uid);
       return res.sendStatus(200);
     }
 
-    // Atendente responde em reply a uma mensagem do cliente
-    if (msg.reply_to_message) {
-      const replyToId = msg.reply_to_message.message_id;
-      const userId = replyMap[replyToId];
-      if (userId && sessions[userId]?.aguardandoAtendente) {
-        const result = await sendMessage(userId, `Atendente:\n${txt}`);
-        // Salva o novo message_id para continuar o fio de resposta
-        if (result) replyMap[result.message_id] = userId;
+    // /reply CODIGO mensagem
+    const matchReply = txt.match(/^\/reply\s+(\S+)\s+([\s\S]+)/i);
+    if (matchReply) {
+      const cod = matchReply[1].toUpperCase();
+      const responseText = matchReply[2];
+      const uid = codigos[cod];
+      const sess = uid ? sessions[uid] : null;
+      if (!sess || !sess.aguardandoAtendente) {
+        await sendAgentMessage(`Codigo ${cod} nao encontrado ou ja encerrado.`);
         return res.sendStatus(200);
       }
+      await sendMessage(uid, `Atendente:\n${responseText}`);
+      return res.sendStatus(200);
     }
 
-    // Atendente manda mensagem livre (sem reply) — envia para o ultimo cliente ativo
-    const clienteAtivo = Object.entries(sessions).find(([, s]) => s.aguardandoAtendente);
-    if (clienteAtivo && !txt.startsWith('/')) {
-      const [uid] = clienteAtivo;
-      const result = await sendMessage(uid, `Atendente:\n${txt}`);
-      if (result) replyMap[result.message_id] = uid;
+    // Mensagem sem comando — lista atendimentos ativos
+    if (!txt.startsWith('/')) {
+      const ativos = Object.entries(sessions)
+        .filter(([, s]) => s.aguardandoAtendente)
+        .map(([uid, s]) => `- ${s.userName}: /reply ${userCodigos[uid]} mensagem`);
+      if (ativos.length > 0) {
+        await sendAgentMessage(`Atendimentos ativos:\n${ativos.join('\n')}\n\nUse /reply CODIGO para responder.`);
+      } else {
+        await sendAgentMessage('Nenhum atendimento ativo no momento.');
+      }
     }
 
     res.sendStatus(200);
