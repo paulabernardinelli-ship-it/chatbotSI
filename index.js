@@ -394,8 +394,8 @@ async function processarMensagem(userId, texto, userName) {
       if (txt === 'Sim, tenho 18+') {
         session.step = 'perfil_bebida';
         await sendMessage(userId,
-          'Qual o seu perfil de paladar?\n\nEscolha uma opcao para ver sugestoes personalizadas ou veja o cardapio completo:',
-          [['Suave', 'Mediano', 'Encorpado'], ['Ver cardapio completo'], ['Voltar ao Cardapio']]
+          'Qual o seu perfil de paladar?\n\nEscolha uma opcao para ver sugestoes personalizadas:',
+          [['Suave', 'Mediano', 'Encorpado'], ['Voltar ao Cardapio']]
         );
       } else {
         await sendMessage(userId, 'Venda de bebidas alcoolicas proibida para menores de 18 anos (Lei 13.106/15).');
@@ -409,11 +409,6 @@ async function processarMensagem(userId, texto, userName) {
       if (txt === 'Suave') perfil = 'suave';
       else if (txt === 'Mediano') perfil = 'mediana';
       else if (txt === 'Encorpado') perfil = 'encorpada';
-      else if (txt === 'Ver cardapio completo') {
-        session.step = 'alcoolicas';
-        await sendBebidasAlcoolicas(userId);
-        break;
-      }
 
       if (perfil) {
         const s = sugestoes[perfil];
@@ -421,12 +416,11 @@ async function processarMensagem(userId, texto, userName) {
         session.step = 'sugestoes_' + perfil;
         await sendMessage(userId,
           `${s.titulo}\n\n_${s.descricao}_\n\n${lista}\n\nDigite o *numero* do produto para adicionar ao carrinho:`,
-          [['Ver Carrinho'], ['Ver cardapio completo', 'Voltar ao Cardapio'], ['Voltar ao Menu']]
+          [['Ver Carrinho'], ['Voltar ao Cardapio', 'Voltar ao Menu']]
         );
       } else {
         await sendMessage(userId, 'Escolha uma opcao:', [
           ['Suave', 'Mediano', 'Encorpado'],
-          ['Ver cardapio completo'],
           ['Voltar ao Cardapio']
         ]);
       }
@@ -437,11 +431,6 @@ async function processarMensagem(userId, texto, userName) {
     case 'sugestoes_mediana':
     case 'sugestoes_encorpada': {
       const perfil = session.step.replace('sugestoes_', '');
-      if (txt === 'Ver cardapio completo') {
-        session.step = 'alcoolicas';
-        await sendBebidasAlcoolicas(userId);
-        break;
-      }
       // Tenta adicionar da lista de sugestoes
       const listaS = sugestoes[perfil].itens;
       const num = parseInt(txt);
@@ -451,7 +440,7 @@ async function processarMensagem(userId, texto, userName) {
         session.total += parsePreco(prod);
         await sendMessage(userId,
           `*${prod}* adicionado ao carrinho!\n\nTotal atual: R$ ${session.total.toFixed(2)}`,
-          [['Ver Carrinho'], ['Ver cardapio completo', 'Voltar ao Cardapio'], ['Voltar ao Menu']]
+          [['Ver Carrinho'], ['Voltar ao Cardapio', 'Voltar ao Menu']]
         );
       } else {
         await sendMessage(userId, 'Digite o numero do produto da lista acima.');
