@@ -6,23 +6,28 @@ app.use(express.json());
 const MAIN_TOKEN = '8939546326:AAFlKtd9tKL5LAZKdJIqZNQZeUUry7IFNuc';
 const AGENT_TOKEN = '8747273381:AAGZPgp091yMSwf0UQhGbhh_cQOxK7anBoE';
 const AGENT_CHAT_ID = '8231669195';
-const WHATSAPP = 'https://wa.me/5511981716393';
+const PIX_KEY = '5511981716393';
+const FRETE_FIXO = 5.00;
 const MAIN_API = `https://api.telegram.org/bot${MAIN_TOKEN}`;
 const AGENT_API = `https://api.telegram.org/bot${AGENT_TOKEN}`;
 
 // Sessões dos usuários
 const sessions = {};
 
-// Códigos curtos para atendimento: código -> userId e userId -> código
+// Códigos curtos: código -> userId e userId -> código
 const codigos = {};
 const userCodigos = {};
+
+// Pedidos aguardando confirmação de pagamento: código -> userId
+const pedidosPendentes = {};
+const userPedidoCod = {};
 
 function gerarCodigo() {
   const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   let cod;
   do {
     cod = Array.from({ length: 4 }, () => letras[Math.floor(Math.random() * letras.length)]).join('');
-  } while (codigos[cod]);
+  } while (codigos[cod] || pedidosPendentes[cod]);
   return cod;
 }
 
@@ -45,7 +50,16 @@ function liberarCodigo(userId) {
 
 function getSession(userId) {
   if (!sessions[userId]) {
-    sessions[userId] = { step: 'menu', carrinho: [], total: 0, aguardandoAtendente: false, userName: '', drink: {} };
+    sessions[userId] = {
+      step: 'menu',
+      carrinho: [],
+      total: 0,
+      aguardandoAtendente: false,
+      userName: '',
+      drink: {},
+      entrega: null,
+      totalComFrete: 0
+    };
   }
   return sessions[userId];
 }
@@ -55,6 +69,11 @@ async function sendMessage(chatId, text, keyboard = null) {
   if (keyboard) payload.reply_markup = { keyboard, resize_keyboard: true, one_time_keyboard: true };
   const res = await axios.post(`${MAIN_API}/sendMessage`, payload);
   return res.data.result;
+}
+
+async function sendPhoto(chatId, photoUrl, caption = '') {
+  const payload = { chat_id: chatId, photo: photoUrl, caption, parse_mode: 'Markdown' };
+  await axios.post(`${MAIN_API}/sendPhoto`, payload);
 }
 
 async function sendAgentMessage(text, keyboard = null) {
@@ -229,6 +248,50 @@ function resumirDrink(drink) {
   return partes.join('\n');
 }
 
+// ─── PIX QR CODE ───────────────────────────────────────────────────────────
+
+function gerarPixPayload(chave, valor, nome, cidade) {
+  function campo(id, val) {
+    const len = val.length.toString().padStart(2, '0');
+    return `${id}${len}${val}`;
+  }
+  const merchantAccountInfo = campo('00', 'BR.GOV.BCB.PIX') + campo('01', chave);
+  const payload =
+    campo('00', '01') +
+    campo('26', merchantAccountInfo) +
+    campo('52', '0000') +
+    campo('53', '986') +
+    campo('54', valor.toFixed(2)) +
+    campo('58', 'BR') +
+    campo('59', nome.substring(0, 25)) +
+    campo('60', cidade.substring(0, 15)) +
+    campo('62', campo('05', '***'));
+
+  // CRC16-CCITT
+  const str = payload + '6304';
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+    }
+    crc &= 0xFFFF;
+  }
+  return payload + '6304' + crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+async function enviarQrCodePix(chatId, valorTotal) {
+  const pixPayload = gerarPixPayload(PIX_KEY, valorTotal, 'Adega Desce Outra', 'Carapicuiba');
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixPayload)}`;
+  await sendPhoto(chatId, qrUrl,
+    `💸 *Pagamento via PIX*\n\n` +
+    `Valor: *R$ ${valorTotal.toFixed(2)}*\n\n` +
+    `Chave PIX: \`${PIX_KEY}\`\n\n` +
+    `Escaneie o QR Code acima ou copie a chave.\n\n` +
+    `⏳ Aguarde a confirmação do pagamento pelo atendente.`
+  );
+}
+
 // ─── SUGESTÕES POR PERFIL ──────────────────────────────────────────────────
 
 const sugestoes = {
@@ -376,6 +439,7 @@ async function processarMensagem(userId, texto, userName) {
     session.carrinho = [];
     session.total = 0;
     session.drink = {};
+    session.entrega = null;
     await sendMessage(userId, 'Olá! Bem-vindo à Adega Desce Outra. Como posso ajudar?');
     await sendMenu(userId);
     return;
@@ -400,10 +464,10 @@ async function processarMensagem(userId, texto, userName) {
       return;
     }
     const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
-    const linkWpp = `https://wa.me/5511981716393?text=${encodeURIComponent('Olá! Gostaria de fazer o seguinte pedido:\n\n' + resumo + '\n\nTotal: R$ ' + session.total.toFixed(2))}`;
+    session.step = 'checkout_entrega';
     await sendMessage(userId,
-      `*Resumo do Pedido:*\n\n${resumo}\n\n*Total: R$ ${session.total.toFixed(2)}*\n\n[Clique aqui para enviar seu pedido pelo WhatsApp](${linkWpp})`,
-      [['Adicionar mais itens', 'Voltar ao Menu']]
+      `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
+      [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
     );
     return;
   }
@@ -435,6 +499,7 @@ async function processarMensagem(userId, texto, userName) {
         session.carrinho = [];
         session.total = 0;
         session.drink = {};
+        session.entrega = null;
         await sendMessage(userId, 'A Adega Desce Outra agradece o contato! Até logo!');
       } else {
         await sendMenu(userId);
@@ -543,7 +608,104 @@ async function processarMensagem(userId, texto, userName) {
       break;
     }
 
-    // ─── FLUXO DE DRINKS ───────────────────────────────────────────────────
+    // ─── CHECKOUT ─────────────────────────────────────────────────────────
+
+    case 'checkout_entrega': {
+      if (txt === '🏠 Retirada no local') {
+        session.entrega = 'retirada';
+        session.totalComFrete = session.total;
+        session.step = 'checkout_confirmar';
+        const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+        await sendMessage(userId,
+          `✅ *Retirada no local*\n\n${resumo}\n\n*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\nConfirmar pedido?`,
+          [['✅ Confirmar pedido', '❌ Cancelar']]
+        );
+      } else if (txt === '🛵 Entrega') {
+        session.entrega = 'entrega';
+        session.step = 'checkout_confirmar_frete';
+        await sendMessage(userId,
+          `🛵 *Entrega*\n\nO frete fixo é de *R$ ${FRETE_FIXO.toFixed(2)}*.\n\nSubtotal: R$ ${session.total.toFixed(2)}\nFrete: R$ ${FRETE_FIXO.toFixed(2)}\n*Total: R$ ${(session.total + FRETE_FIXO).toFixed(2)}*\n\nDeseja continuar?`,
+          [['✅ Aceito o frete', '❌ Cancelar']]
+        );
+      } else {
+        const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+        await sendMessage(userId,
+          `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
+          [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
+        );
+      }
+      break;
+    }
+
+    case 'checkout_confirmar_frete': {
+      if (txt === '✅ Aceito o frete') {
+        session.totalComFrete = session.total + FRETE_FIXO;
+        session.step = 'checkout_confirmar';
+        const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+        await sendMessage(userId,
+          `🛵 *Entrega confirmada*\n\n${resumo}\n\nFrete: R$ ${FRETE_FIXO.toFixed(2)}\n*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\nConfirmar pedido?`,
+          [['✅ Confirmar pedido', '❌ Cancelar']]
+        );
+      } else if (txt === '❌ Cancelar') {
+        session.step = 'checkout_entrega';
+        const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+        await sendMessage(userId,
+          `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
+          [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
+        );
+      } else {
+        await sendMessage(userId, 'Escolha uma opção:', [['✅ Aceito o frete', '❌ Cancelar']]);
+      }
+      break;
+    }
+
+    case 'checkout_confirmar': {
+      if (txt === '✅ Confirmar pedido') {
+        // Gera código de pedido
+        const codPedido = gerarCodigo();
+        pedidosPendentes[codPedido] = userId;
+        userPedidoCod[userId] = codPedido;
+
+        const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+        const tipoEntrega = session.entrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada no local';
+
+        // Notifica atendente
+        await sendAgentMessage(
+          `🛒 *NOVO PEDIDO — #${codPedido}*\n\n` +
+          `👤 Cliente: ${userName}\n` +
+          `📦 Tipo: ${tipoEntrega}\n\n` +
+          `${resumo}\n\n` +
+          `${session.entrega === 'entrega' ? `Frete: R$ ${FRETE_FIXO.toFixed(2)}\n` : ''}` +
+          `*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\n` +
+          `Para confirmar pagamento: /pago ${codPedido}\n` +
+          `Para recusar: /recusar ${codPedido}`
+        );
+
+        // Envia QR Code PIX para o usuário
+        session.step = 'aguardando_pagamento';
+        await sendMessage(userId, `✅ *Pedido #${codPedido} recebido!*\n\nAgora realize o pagamento via PIX para confirmar.\n\n${tipoEntrega}\n*Total: R$ ${session.totalComFrete.toFixed(2)}*`);
+        await enviarQrCodePix(userId, session.totalComFrete);
+
+      } else if (txt === '❌ Cancelar') {
+        session.step = 'menu';
+        session.carrinho = [];
+        session.total = 0;
+        session.totalComFrete = 0;
+        session.entrega = null;
+        await sendMessage(userId, 'Pedido cancelado. Que pena! Se quiser, pode montar um novo pedido.');
+        await sendMenu(userId);
+      } else {
+        await sendMessage(userId, 'Escolha uma opção:', [['✅ Confirmar pedido', '❌ Cancelar']]);
+      }
+      break;
+    }
+
+    case 'aguardando_pagamento': {
+      await sendMessage(userId, '⏳ Aguarde a confirmação do pagamento pelo atendente.\n\nSe tiver dúvidas, entre em contato.');
+      break;
+    }
+
+    // ─── FLUXO DE DRINKS ──────────────────────────────────────────────────
 
     case 'drink_verificar_idade':
       if (txt === 'Sim, tenho 18+') {
@@ -697,7 +859,7 @@ app.post('/webhook-main', async (req, res) => {
   }
 });
 
-// Webhook do AGENT BOT — atendente responde com /reply CODIGO mensagem
+// Webhook do AGENT BOT
 app.post('/webhook', async (req, res) => {
   try {
     const msg = req.body.message;
@@ -706,7 +868,53 @@ app.post('/webhook', async (req, res) => {
 
     const txt = msg.text.trim();
 
-    // /encerrar CODIGO
+    // /pago CODIGO — confirma pagamento e libera pedido
+    const matchPago = txt.match(/^\/pago\s+(\S+)/i);
+    if (matchPago) {
+      const cod = matchPago[1].toUpperCase();
+      const uid = pedidosPendentes[cod];
+      const sess = uid ? sessions[uid] : null;
+      if (!sess) {
+        await sendAgentMessage(`Pedido #${cod} não encontrado ou já processado.`);
+        return res.sendStatus(200);
+      }
+      delete pedidosPendentes[cod];
+      delete userPedidoCod[uid];
+      sess.step = 'menu';
+      sess.carrinho = [];
+      sess.total = 0;
+      sess.totalComFrete = 0;
+      sess.entrega = null;
+      await sendAgentMessage(`✅ Pedido *#${cod}* confirmado! Cliente notificado.`);
+      await sendMessage(uid,
+        `🎉 *Pagamento confirmado!*\n\nSeu pedido *#${cod}* foi confirmado e está sendo preparado.\n\nObrigado por comprar na Adega Desce Outra! 🍻`
+      );
+      await sendMenu(uid);
+      return res.sendStatus(200);
+    }
+
+    // /recusar CODIGO — recusa pedido
+    const matchRecusar = txt.match(/^\/recusar\s+(\S+)/i);
+    if (matchRecusar) {
+      const cod = matchRecusar[1].toUpperCase();
+      const uid = pedidosPendentes[cod];
+      const sess = uid ? sessions[uid] : null;
+      if (!sess) {
+        await sendAgentMessage(`Pedido #${cod} não encontrado ou já processado.`);
+        return res.sendStatus(200);
+      }
+      delete pedidosPendentes[cod];
+      delete userPedidoCod[uid];
+      sess.step = 'menu';
+      await sendAgentMessage(`❌ Pedido *#${cod}* recusado. Cliente notificado.`);
+      await sendMessage(uid,
+        `❌ *Pagamento não confirmado*\n\nNão conseguimos confirmar seu pagamento para o pedido *#${cod}*.\n\nEntre em contato pelo WhatsApp ou tente novamente.`
+      );
+      await sendMenu(uid);
+      return res.sendStatus(200);
+    }
+
+    // /encerrar CODIGO — encerra atendimento humano
     const matchEncerrar = txt.match(/^\/encerrar\s+(\S+)/i);
     if (matchEncerrar) {
       const cod = matchEncerrar[1].toUpperCase();
@@ -740,16 +948,23 @@ app.post('/webhook', async (req, res) => {
       return res.sendStatus(200);
     }
 
-    // Mensagem sem comando — lista atendimentos ativos
+    // Mensagem sem comando — lista status
     if (!txt.startsWith('/')) {
       const ativos = Object.entries(sessions)
         .filter(([, s]) => s.aguardandoAtendente)
         .map(([uid, s]) => `- ${s.userName}: /reply ${userCodigos[uid]} mensagem`);
-      if (ativos.length > 0) {
-        await sendAgentMessage(`Atendimentos ativos:\n${ativos.join('\n')}\n\nUse /reply CODIGO para responder.`);
-      } else {
-        await sendAgentMessage('Nenhum atendimento ativo no momento.');
-      }
+
+      const pendentes = Object.entries(pedidosPendentes)
+        .map(([cod, uid]) => {
+          const s = sessions[uid];
+          return `- Pedido #${cod} (${s ? s.userName : uid}): /pago ${cod} | /recusar ${cod}`;
+        });
+
+      let msg = '';
+      if (pendentes.length > 0) msg += `💳 *Pedidos aguardando confirmação:*\n${pendentes.join('\n')}\n\n`;
+      if (ativos.length > 0) msg += `💬 *Atendimentos ativos:*\n${ativos.join('\n')}\n\nUse /reply CODIGO para responder.`;
+      if (!msg) msg = 'Nenhum pedido ou atendimento ativo no momento.';
+      await sendAgentMessage(msg);
     }
 
     res.sendStatus(200);
