@@ -538,15 +538,32 @@ async function processarMensagem(userId, texto, userName) {
 
     case 'verificar_idade':
       if (txt === 'Sim, tenho 18+') {
-        session.step = 'perfil_bebida';
+        session.step = 'sugestao_ou_cardapio';
         await sendMessage(userId,
-          'Qual o seu perfil de paladar?\n\nEscolha uma opção para ver sugestões personalizadas:',
-          [['Suave', 'Mediano', 'Encorpado'], ['Voltar ao Cardápio']]
+          '🍺 Quer receber uma *sugestão personalizada* de bebida conforme seu paladar?\n\nOu prefere ver o cardápio completo?',
+          [['✨ Quero uma sugestão!', '📋 Ver cardápio completo']]
         );
       } else {
         await sendMessage(userId, 'Venda de bebidas alcoólicas proibida para menores de 18 anos (Lei 13.106/15).');
         session.step = 'cardapio';
         await sendCardapio(userId);
+      }
+      break;
+
+    case 'sugestao_ou_cardapio':
+      if (txt === '✨ Quero uma sugestão!') {
+        session.step = 'perfil_bebida';
+        await sendMessage(userId,
+          'Qual o seu perfil de paladar?\n\nEscolha uma opção para ver sugestões personalizadas:',
+          [['Suave', 'Mediano', 'Encorpado'], ['Voltar ao Cardápio']]
+        );
+      } else if (txt === '📋 Ver cardápio completo') {
+        session.step = 'alcoolicas';
+        await sendBebidasAlcoolicas(userId);
+      } else {
+        await sendMessage(userId, 'Escolha uma opção:',
+          [['✨ Quero uma sugestão!', '📋 Ver cardápio completo']]
+        );
       }
       break;
 
