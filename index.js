@@ -10,10 +10,10 @@ const WHATSAPP = 'https://wa.me/5511981716393';
 const MAIN_API = `https://api.telegram.org/bot${MAIN_TOKEN}`;
 const AGENT_API = `https://api.telegram.org/bot${AGENT_TOKEN}`;
 
-// Sessoes dos usuarios
+// Sessões dos usuários
 const sessions = {};
 
-// Codigos curtos para atendimento: codigo -> userId e userId -> codigo
+// Códigos curtos para atendimento: código -> userId e userId -> código
 const codigos = {};
 const userCodigos = {};
 
@@ -45,7 +45,7 @@ function liberarCodigo(userId) {
 
 function getSession(userId) {
   if (!sessions[userId]) {
-    sessions[userId] = { step: 'menu', carrinho: [], total: 0, aguardandoAtendente: false, userName: '' };
+    sessions[userId] = { step: 'menu', carrinho: [], total: 0, aguardandoAtendente: false, userName: '', drink: {} };
   }
   return sessions[userId];
 }
@@ -65,17 +65,17 @@ async function sendAgentMessage(text, keyboard = null) {
 }
 
 async function sendMenu(chatId) {
-  await sendMessage(chatId, 'Selecione uma opcao:', [
-    ['Ver Cardapio', 'Ver Localizacao'],
-    ['Horario de Funcionamento', 'Falar com Atendente'],
-    ['Falar no WhatsApp', 'Sair']
+  await sendMessage(chatId, 'Selecione uma opção:', [
+    ['Ver Cardápio', 'Ver Localização'],
+    ['Horário de Funcionamento', 'Falar com Atendente'],
+    ['Montar Drink', 'Sair']
   ]);
 }
 
 async function sendCardapio(chatId) {
   await sendMessage(chatId, 'Qual categoria te interessa?', [
-    ['Bebidas alcoolicas'],
-    ['Bebidas nao alcoolicas'],
+    ['Bebidas alcoólicas'],
+    ['Bebidas não alcoólicas'],
     ['Salgadinhos e petiscos'],
     ['Voltar ao Menu']
   ]);
@@ -83,9 +83,9 @@ async function sendCardapio(chatId) {
 
 async function sendBebidasAlcoolicas(chatId) {
   await sendMessage(chatId,
-    '*Bebidas Alcoolicas*\n\nDigite o *numero* do produto para adicionar ao carrinho:\n\n' +
+    '*Bebidas Alcoólicas*\n\nDigite o *número* do produto para adicionar ao carrinho:\n\n' +
     '1. Cerveja Brahma 269ml - R$ 5,00\n' +
-    '2. Cerveja Imperio 269ml - R$ 5,00\n' +
+    '2. Cerveja Império 269ml - R$ 5,00\n' +
     '3. Cerveja Eisenbahn 269ml - R$ 6,00\n' +
     '4. Cerveja Budweiser 269ml - R$ 6,00\n' +
     '5. Caixa Original 8x269ml - R$ 28,00\n' +
@@ -102,15 +102,15 @@ async function sendBebidasAlcoolicas(chatId) {
     '16. Smirnoff Ice 275ml - R$ 8,00\n' +
     '17. Skol Beats 269ml - R$ 9,00\n' +
     '18. 51 Ice 275ml - R$ 7,00\n' +
-    '19. Cabare Ice 275ml - R$ 7,00\n' +
+    '19. Cabaré Ice 275ml - R$ 7,00\n' +
     '20. Leev Ice 275ml - R$ 7,00\n' +
     '21. Caracu 350ml - R$ 6,00\n' +
     '22. Pitu 1L - R$ 28,00\n' +
     '23. Pitu 350ml - R$ 6,00\n' +
-    '24. Pitu com Limao 350ml - R$ 6,00\n' +
+    '24. Pitu com Limão 350ml - R$ 6,00\n' +
     '25. 51 Original 1L - R$ 16,00\n' +
     '26. Velho Barreiro 1L - R$ 20,00\n' +
-    '27. Cabare 1L - R$ 25,00\n' +
+    '27. Cabaré 1L - R$ 25,00\n' +
     '28. Ypioca 1L - R$ 20,00',
     [['Ver Carrinho', 'Voltar ao Menu']]
   );
@@ -118,15 +118,15 @@ async function sendBebidasAlcoolicas(chatId) {
 
 async function sendNaoAlcoolicas(chatId) {
   await sendMessage(chatId,
-    '*Bebidas Nao Alcoolicas*\n\nDigite o *numero* do produto para adicionar ao carrinho:\n\n' +
+    '*Bebidas Não Alcoólicas*\n\nDigite o *número* do produto para adicionar ao carrinho:\n\n' +
     '1. Coca-cola 2L - R$ 12,00\n' +
     '2. Coca-cola 1L - R$ 10,00\n' +
     '3. Coca-cola 350ml - R$ 6,00\n' +
     '4. Pepsi 2L - R$ 10,00\n' +
     '5. Pepsi 350ml - R$ 5,00\n' +
-    '6. Dolly Guarana 2L - R$ 7,00\n' +
-    '7. Guarana Antarctica 2L - R$ 9,00\n' +
-    '8. Guarana Antarctica 350ml - R$ 5,00\n' +
+    '6. Dolly Guaraná 2L - R$ 7,00\n' +
+    '7. Guaraná Antarctica 2L - R$ 9,00\n' +
+    '8. Guaraná Antarctica 350ml - R$ 5,00\n' +
     '9. Fanta Laranja 2L - R$ 10,00\n' +
     '10. Fanta Laranja 350ml - R$ 6,00\n' +
     '11. Fanta Uva 350ml - R$ 5,00\n' +
@@ -137,11 +137,11 @@ async function sendNaoAlcoolicas(chatId) {
 
 async function sendSalgadinhos(chatId) {
   await sendMessage(chatId,
-    '*Salgadinhos e Petiscos*\n\nDigite o *numero* do produto para adicionar ao carrinho:\n\n' +
+    '*Salgadinhos e Petiscos*\n\nDigite o *número* do produto para adicionar ao carrinho:\n\n' +
     '1. Amendoim Hitnuts 90g - R$ 6,00\n' +
     '2. Torcida Pimenta 90g - R$ 6,00\n' +
     '3. Torcida Cebola 90g - R$ 6,00\n' +
-    '4. Lays Classica - R$ 8,00\n' +
+    '4. Lays Clássica - R$ 8,00\n' +
     '5. Ruffles Original 68g - R$ 7,00\n' +
     '6. Fofura Cebola - R$ 3,50\n' +
     '7. Chettos sabores - R$ 5,00\n' +
@@ -152,23 +152,101 @@ async function sendSalgadinhos(chatId) {
   );
 }
 
-// Sugestoes por perfil
+// ─── DRINKS ────────────────────────────────────────────────────────────────
+
+async function sendDrinkBase(chatId) {
+  await sendMessage(chatId,
+    '🍹 *Monte seu Drink*\n\nEscolha a *base* do seu drink:',
+    [['Gin', 'Whisky'], ['Vodka', 'Saquê'], ['Voltar ao Menu']]
+  );
+}
+
+async function sendDrinkGelo(chatId) {
+  await sendMessage(chatId,
+    '🧊 Escolha o tipo de *gelo*:',
+    [['Gelo Normal', 'Gelo de Coco'], ['Gelo de Coco Saborizado'], ['Voltar ao Menu']]
+  );
+}
+
+async function sendDrinkGeloSaborizado(chatId) {
+  await sendMessage(chatId,
+    '🍉 Escolha o *sabor* do gelo de coco saborizado:',
+    [['Maçã Verde', 'Melancia'], ['Frutas Vermelhas'], ['Voltar ao Menu']]
+  );
+}
+
+async function sendDrinkEnergetico(chatId) {
+  await sendMessage(chatId,
+    '⚡ Deseja adicionar *energético*?',
+    [['Sim, quero energético!', 'Não, obrigado'], ['Voltar ao Menu']]
+  );
+}
+
+async function sendDrinkEnergeticoMarca(chatId) {
+  await sendMessage(chatId,
+    '⚡ Escolha o *energético*:',
+    [['Red Bull', 'Monster'], ['Baly'], ['Voltar ao Menu']]
+  );
+}
+
+async function sendDrinkXarope(chatId) {
+  await sendMessage(chatId,
+    '🍬 Deseja adicionar *xarope*?',
+    [['Sim, quero xarope!', 'Não, obrigado'], ['Voltar ao Menu']]
+  );
+}
+
+async function sendDrinkXaropeSabor(chatId) {
+  await sendMessage(chatId,
+    '🍬 Escolha o *sabor* do xarope:',
+    [['Xarope Melancia', 'Xarope Maçã Verde'], ['Xarope Frutas Vermelhas'], ['Voltar ao Menu']]
+  );
+}
+
+async function sendDrinkCanudo(chatId) {
+  await sendMessage(chatId,
+    '🌿 Deseja adicionar *canudo sustentável*?',
+    [['Sim, quero canudo!', 'Não, obrigado'], ['Voltar ao Menu']]
+  );
+}
+
+async function sendDrinkTamanho(chatId) {
+  await sendMessage(chatId,
+    '📏 Escolha o *tamanho* do drink:\n\n300ml - R$ 15,00\n400ml - R$ 20,00\n500ml - R$ 25,00',
+    [['300ml - R$ 15,00', '400ml - R$ 20,00'], ['500ml - R$ 25,00'], ['Voltar ao Menu']]
+  );
+}
+
+function resumirDrink(drink) {
+  let partes = [`Base: ${drink.base}`];
+  partes.push(`Gelo: ${drink.gelo === 'Gelo de Coco Saborizado' ? `Gelo de Coco Saborizado (${drink.geloSabor})` : drink.gelo}`);
+  if (drink.energetico && drink.energetico !== 'Não') partes.push(`Energético: ${drink.energetico}`);
+  else partes.push('Sem energético');
+  if (drink.xarope && drink.xarope !== 'Não') partes.push(`Xarope: ${drink.xarope}`);
+  else partes.push('Sem xarope');
+  partes.push(`Canudo sustentável: ${drink.canudo ? 'Sim' : 'Não'}`);
+  partes.push(`Tamanho: ${drink.tamanho}`);
+  return partes.join('\n');
+}
+
+// ─── SUGESTÕES POR PERFIL ──────────────────────────────────────────────────
+
 const sugestoes = {
   suave: {
-    titulo: 'Sugestoes para paladar *Suave*',
-    descricao: 'Bebidas leves, refrescantes e de baixa amargor. Ideais para quem prefere sabores delicados.',
+    titulo: 'Sugestões para paladar *Suave*',
+    descricao: 'Bebidas leves, refrescantes e de baixo amargor. Ideais para quem prefere sabores delicados.',
     itens: [
       'Cerveja Brahma 269ml - R$ 5,00',
-      'Cerveja Imperio 269ml - R$ 5,00',
+      'Cerveja Império 269ml - R$ 5,00',
       'Smirnoff Ice 275ml - R$ 8,00',
       '51 Ice 275ml - R$ 7,00',
-      'Cabare Ice 275ml - R$ 7,00',
+      'Cabaré Ice 275ml - R$ 7,00',
       'Leev Ice 275ml - R$ 7,00',
-      'Pitu com Limao 350ml - R$ 6,00',
+      'Pitu com Limão 350ml - R$ 6,00',
     ]
   },
   mediana: {
-    titulo: 'Sugestoes para paladar *Mediano*',
+    titulo: 'Sugestões para paladar *Mediano*',
     descricao: 'Bebidas com corpo equilibrado, nem muito leves nem muito intensas. O melhor dos dois mundos.',
     itens: [
       'Cerveja Budweiser 269ml - R$ 6,00',
@@ -181,15 +259,15 @@ const sugestoes = {
     ]
   },
   encorpada: {
-    titulo: 'Sugestoes para paladar *Encorpado*',
-    descricao: 'Bebidas com sabor intenso, mais amargas ou com maior teor alcoolico. Para os apreciadores.',
+    titulo: 'Sugestões para paladar *Encorpado*',
+    descricao: 'Bebidas com sabor intenso, mais amargas ou com maior teor alcoólico. Para os apreciadores.',
     itens: [
       'Caixa Spaten 8x269ml - R$ 29,00',
       'Caixa Skol Malte 15un - R$ 46,00',
       'Caixa Skol Beats 8un - R$ 48,00',
       'Pitu 1L - R$ 28,00',
       'Velho Barreiro 1L - R$ 20,00',
-      'Cabare 1L - R$ 25,00',
+      'Cabaré 1L - R$ 25,00',
       'Ypioca 1L - R$ 20,00',
     ]
   }
@@ -202,7 +280,7 @@ function parsePreco(texto) {
 }
 
 const produtosAlcoolicos = [
-  'Cerveja Brahma 269ml - R$ 5,00', 'Cerveja Imperio 269ml - R$ 5,00',
+  'Cerveja Brahma 269ml - R$ 5,00', 'Cerveja Império 269ml - R$ 5,00',
   'Cerveja Eisenbahn 269ml - R$ 6,00', 'Cerveja Budweiser 269ml - R$ 6,00',
   'Caixa Original 8x269ml - R$ 28,00', 'Caixa Original 15x269ml - R$ 42,00',
   'Caixa Heineken 8x269ml - R$ 32,00', 'Caixa Amstel 8x269ml - R$ 29,00',
@@ -211,25 +289,25 @@ const produtosAlcoolicos = [
   'Caixa Skol Beats 8un - R$ 48,00', 'Caixa Skol LN 6un - R$ 46,00',
   'Caixa Skol Pilsen 12un - R$ 40,00', 'Smirnoff Ice 275ml - R$ 8,00',
   'Skol Beats 269ml - R$ 9,00', '51 Ice 275ml - R$ 7,00',
-  'Cabare Ice 275ml - R$ 7,00', 'Leev Ice 275ml - R$ 7,00',
+  'Cabaré Ice 275ml - R$ 7,00', 'Leev Ice 275ml - R$ 7,00',
   'Caracu 350ml - R$ 6,00', 'Pitu 1L - R$ 28,00',
-  'Pitu 350ml - R$ 6,00', 'Pitu com Limao 350ml - R$ 6,00',
+  'Pitu 350ml - R$ 6,00', 'Pitu com Limão 350ml - R$ 6,00',
   '51 Original 1L - R$ 16,00', 'Velho Barreiro 1L - R$ 20,00',
-  'Cabare 1L - R$ 25,00', 'Ypioca 1L - R$ 20,00'
+  'Cabaré 1L - R$ 25,00', 'Ypioca 1L - R$ 20,00'
 ];
 
 const produtosNaoAlcoolicos = [
   'Coca-cola 2L - R$ 12,00', 'Coca-cola 1L - R$ 10,00',
   'Coca-cola 350ml - R$ 6,00', 'Pepsi 2L - R$ 10,00',
-  'Pepsi 350ml - R$ 5,00', 'Dolly Guarana 2L - R$ 7,00',
-  'Guarana Antarctica 2L - R$ 9,00', 'Guarana Antarctica 350ml - R$ 5,00',
+  'Pepsi 350ml - R$ 5,00', 'Dolly Guaraná 2L - R$ 7,00',
+  'Guaraná Antarctica 2L - R$ 9,00', 'Guaraná Antarctica 350ml - R$ 5,00',
   'Fanta Laranja 2L - R$ 10,00', 'Fanta Laranja 350ml - R$ 6,00',
   'Fanta Uva 350ml - R$ 5,00', 'Schweppes Citrus 1,5L - R$ 9,00'
 ];
 
 const produtosSalgadinhos = [
   'Amendoim Hitnuts 90g - R$ 6,00', 'Torcida Pimenta 90g - R$ 6,00',
-  'Torcida Cebola 90g - R$ 6,00', 'Lays Classica - R$ 8,00',
+  'Torcida Cebola 90g - R$ 6,00', 'Lays Clássica - R$ 8,00',
   'Ruffles Original 68g - R$ 7,00', 'Fofura Cebola - R$ 3,50',
   'Chettos sabores - R$ 5,00', 'Kitkat ao Leite - R$ 6,00',
   'Kitkat Branco - R$ 6,00', 'Trento sabores - R$ 6,00'
@@ -264,10 +342,10 @@ async function adicionarItens(userId, txt, lista, session) {
       ? '*' + adicionados[0] + '* adicionado ao carrinho!'
       : '*' + adicionados.length + ' itens* adicionados ao carrinho:\n' + itens;
     msg += '\n\nTotal atual: R$ ' + session.total.toFixed(2);
-    if (naoEncontrados.length > 0) msg += '\n\nNao encontrado(s): ' + naoEncontrados.join(', ');
+    if (naoEncontrados.length > 0) msg += '\n\nNão encontrado(s): ' + naoEncontrados.join(', ');
     await sendMessage(userId, msg, [['Ver Carrinho', 'Voltar ao Menu']]);
   } else {
-    await sendMessage(userId, 'Nenhum produto encontrado. Digite os numeros separados por espaco ou virgula. Ex: 1 3 7');
+    await sendMessage(userId, 'Nenhum produto encontrado. Digite os números separados por espaço ou vírgula. Ex: 1 3 7');
   }
 }
 
@@ -276,7 +354,7 @@ async function processarMensagem(userId, texto, userName) {
   session.userName = userName;
   const txt = texto.trim();
 
-  // Usuario em atendimento humano
+  // Usuário em atendimento humano
   if (session.aguardandoAtendente) {
     if (txt.toLowerCase() === '/sair') {
       session.aguardandoAtendente = false;
@@ -284,7 +362,7 @@ async function processarMensagem(userId, texto, userName) {
       liberarCodigo(userId);
       await sendMessage(userId, 'Atendimento encerrado. Obrigado!');
       await sendMenu(userId);
-      await sendAgentMessage(`Atendimento com *${userName}* encerrado pelo usuario.`);
+      await sendAgentMessage(`Atendimento com *${userName}* encerrado pelo usuário.`);
     } else {
       const cod = getCodigo(userId);
       await sendAgentMessage(`[${cod}] *${userName}:*\n${txt}`);
@@ -297,18 +375,20 @@ async function processarMensagem(userId, texto, userName) {
     session.step = 'menu';
     session.carrinho = [];
     session.total = 0;
-    await sendMessage(userId, 'Ola! Bem-vindo a Adega Desce Outra. Como posso ajudar?');
+    session.drink = {};
+    await sendMessage(userId, 'Olá! Bem-vindo à Adega Desce Outra. Como posso ajudar?');
     await sendMenu(userId);
     return;
   }
 
   if (txt === 'Voltar ao Menu' || txt.toLowerCase() === 'menu') {
     session.step = 'menu';
+    session.drink = {};
     await sendMenu(userId);
     return;
   }
 
-  if (txt === 'Voltar ao Cardapio' || txt.toLowerCase() === 'voltar ao cardapio') {
+  if (txt === 'Voltar ao Cardápio' || txt.toLowerCase() === 'voltar ao cardapio' || txt === 'Voltar ao Cardapio') {
     session.step = 'cardapio';
     await sendCardapio(userId);
     return;
@@ -316,11 +396,11 @@ async function processarMensagem(userId, texto, userName) {
 
   if (txt === 'Ver Carrinho' || txt.toLowerCase() === 'carrinho') {
     if (session.carrinho.length === 0) {
-      await sendMessage(userId, 'Seu carrinho esta vazio.');
+      await sendMessage(userId, 'Seu carrinho está vazio.');
       return;
     }
     const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
-    const linkWpp = `https://wa.me/5511981716393?text=${encodeURIComponent('Ola! Gostaria de fazer o seguinte pedido:\n\n' + resumo + '\n\nTotal: R$ ' + session.total.toFixed(2))}`;
+    const linkWpp = `https://wa.me/5511981716393?text=${encodeURIComponent('Olá! Gostaria de fazer o seguinte pedido:\n\n' + resumo + '\n\nTotal: R$ ' + session.total.toFixed(2))}`;
     await sendMessage(userId,
       `*Resumo do Pedido:*\n\n${resumo}\n\n*Total: R$ ${session.total.toFixed(2)}*\n\n[Clique aqui para enviar seu pedido pelo WhatsApp](${linkWpp})`,
       [['Adicionar mais itens', 'Voltar ao Menu']]
@@ -335,26 +415,27 @@ async function processarMensagem(userId, texto, userName) {
 
   switch (session.step) {
     case 'menu':
-      if (txt === 'Ver Cardapio') {
+      if (txt === 'Ver Cardápio' || txt === 'Ver Cardapio') {
         session.step = 'cardapio';
         await sendCardapio(userId);
-      } else if (txt === 'Ver Localizacao') {
-        await sendMessage(userId, '*Localizacao:*\n\nR. Caminho de Itapevi, 97 - Vila Nossa Sra. Aparecida\nCarapicuiba - SP, 06390-220\n\n[Abrir no Google Maps](https://maps.google.com/?q=R.+Caminho+de+Itapevi,+97+Carapicuiba)');
+      } else if (txt === 'Ver Localização' || txt === 'Ver Localizacao') {
+        await sendMessage(userId, '*Localização:*\n\nR. Caminho de Itapevi, 97 - Vila Nossa Sra. Aparecida\nCarapicuíba - SP, 06390-220\n\n[Abrir no Google Maps](https://maps.google.com/?q=R.+Caminho+de+Itapevi,+97+Carapicuiba)');
         await sendMenu(userId);
-      } else if (txt === 'Horario de Funcionamento') {
-        await sendMessage(userId, '*Horario de Atendimento:*\n\nTerca a quinta: 8h as 20h\nSexta e sabado: 10h as 22h\nDomingo: 10h as 17h');
+      } else if (txt === 'Horário de Funcionamento' || txt === 'Horario de Funcionamento') {
+        await sendMessage(userId, '*Horário de Atendimento:*\n\nTerça a quinta: 8h às 20h\nSexta e sábado: 10h às 22h\nDomingo: 10h às 17h');
         await sendMenu(userId);
       } else if (txt === 'Falar com Atendente') {
         session.step = 'confirmar_atendente';
-        await sendMessage(userId, 'Deseja mesmo falar com um atendente?', [['Sim', 'Nao']]);
-      } else if (txt === 'Falar no WhatsApp') {
-        await sendMessage(userId, `[Clique aqui para falar no WhatsApp](${WHATSAPP})`);
-        await sendMenu(userId);
+        await sendMessage(userId, 'Deseja mesmo falar com um atendente?', [['Sim', 'Não']]);
+      } else if (txt === 'Montar Drink') {
+        session.step = 'drink_verificar_idade';
+        await sendMessage(userId, 'Para montar um drink, confirme:\n\nVocê tem mais de 18 anos?', [['Sim, tenho 18+', 'Não']]);
       } else if (txt === 'Sair') {
         session.step = 'menu';
         session.carrinho = [];
         session.total = 0;
-        await sendMessage(userId, 'A Adega Desce Outra agradece o contato! Ate logo!');
+        session.drink = {};
+        await sendMessage(userId, 'A Adega Desce Outra agradece o contato! Até logo!');
       } else {
         await sendMenu(userId);
       }
@@ -367,7 +448,7 @@ async function processarMensagem(userId, texto, userName) {
         const cod = getCodigo(userId);
         await sendMessage(userId, 'Certo! Nossa equipe foi notificada e vai te responder por aqui.\n\nPode mandar sua mensagem. Para encerrar, digite /sair.');
         await sendAgentMessage(
-          `*Novo atendimento solicitado*\n\nCliente: ${userName}\nCodigo: \`${cod}\`\n\nResponda: /reply ${cod} mensagem\nEncerrar: /encerrar ${cod}`
+          `*Novo atendimento solicitado*\n\nCliente: ${userName}\nCódigo: \`${cod}\`\n\nResponda: /reply ${cod} mensagem\nEncerrar: /encerrar ${cod}`
         );
       } else {
         session.step = 'menu';
@@ -376,10 +457,10 @@ async function processarMensagem(userId, texto, userName) {
       break;
 
     case 'cardapio':
-      if (txt === 'Bebidas alcoolicas') {
+      if (txt === 'Bebidas alcoólicas' || txt === 'Bebidas alcoolicas') {
         session.step = 'verificar_idade';
-        await sendMessage(userId, 'Para acessar o cardapio de bebidas alcoolicas, confirme:\n\nVoce tem mais de 18 anos?', [['Sim, tenho 18+', 'Nao']]);
-      } else if (txt === 'Bebidas nao alcoolicas') {
+        await sendMessage(userId, 'Para acessar o cardápio de bebidas alcoólicas, confirme:\n\nVocê tem mais de 18 anos?', [['Sim, tenho 18+', 'Não']]);
+      } else if (txt === 'Bebidas não alcoólicas' || txt === 'Bebidas nao alcoolicas') {
         session.step = 'nao_alcoolicas';
         await sendNaoAlcoolicas(userId);
       } else if (txt === 'Salgadinhos e petiscos') {
@@ -394,11 +475,11 @@ async function processarMensagem(userId, texto, userName) {
       if (txt === 'Sim, tenho 18+') {
         session.step = 'perfil_bebida';
         await sendMessage(userId,
-          'Qual o seu perfil de paladar?\n\nEscolha uma opcao para ver sugestoes personalizadas:',
-          [['Suave', 'Mediano', 'Encorpado'], ['Voltar ao Cardapio']]
+          'Qual o seu perfil de paladar?\n\nEscolha uma opção para ver sugestões personalizadas:',
+          [['Suave', 'Mediano', 'Encorpado'], ['Voltar ao Cardápio']]
         );
       } else {
-        await sendMessage(userId, 'Venda de bebidas alcoolicas proibida para menores de 18 anos (Lei 13.106/15).');
+        await sendMessage(userId, 'Venda de bebidas alcoólicas proibida para menores de 18 anos (Lei 13.106/15).');
         session.step = 'cardapio';
         await sendCardapio(userId);
       }
@@ -415,13 +496,13 @@ async function processarMensagem(userId, texto, userName) {
         const lista = s.itens.map((item, i) => `${i + 1}. ${item}`).join('\n');
         session.step = 'sugestoes_' + perfil;
         await sendMessage(userId,
-          `${s.titulo}\n\n_${s.descricao}_\n\n${lista}\n\nDigite o *numero* do produto para adicionar ao carrinho:`,
-          [['Ver Carrinho'], ['Voltar ao Cardapio', 'Voltar ao Menu']]
+          `${s.titulo}\n\n_${s.descricao}_\n\n${lista}\n\nDigite o *número* do produto para adicionar ao carrinho:`,
+          [['Ver Carrinho'], ['Voltar ao Cardápio', 'Voltar ao Menu']]
         );
       } else {
-        await sendMessage(userId, 'Escolha uma opcao:', [
+        await sendMessage(userId, 'Escolha uma opção:', [
           ['Suave', 'Mediano', 'Encorpado'],
-          ['Voltar ao Cardapio']
+          ['Voltar ao Cardápio']
         ]);
       }
       break;
@@ -431,7 +512,6 @@ async function processarMensagem(userId, texto, userName) {
     case 'sugestoes_mediana':
     case 'sugestoes_encorpada': {
       const perfil = session.step.replace('sugestoes_', '');
-      // Tenta adicionar da lista de sugestoes
       const listaS = sugestoes[perfil].itens;
       const num = parseInt(txt);
       if (!isNaN(num) && num >= 1 && num <= listaS.length) {
@@ -440,10 +520,10 @@ async function processarMensagem(userId, texto, userName) {
         session.total += parsePreco(prod);
         await sendMessage(userId,
           `*${prod}* adicionado ao carrinho!\n\nTotal atual: R$ ${session.total.toFixed(2)}`,
-          [['Ver Carrinho'], ['Voltar ao Cardapio', 'Voltar ao Menu']]
+          [['Ver Carrinho'], ['Voltar ao Cardápio', 'Voltar ao Menu']]
         );
       } else {
-        await sendMessage(userId, 'Digite o numero do produto da lista acima.');
+        await sendMessage(userId, 'Digite o número do produto da lista acima.');
       }
       break;
     }
@@ -463,6 +543,139 @@ async function processarMensagem(userId, texto, userName) {
       break;
     }
 
+    // ─── FLUXO DE DRINKS ───────────────────────────────────────────────────
+
+    case 'drink_verificar_idade':
+      if (txt === 'Sim, tenho 18+') {
+        session.step = 'drink_base';
+        session.drink = {};
+        await sendDrinkBase(userId);
+      } else {
+        await sendMessage(userId, 'Venda de bebidas alcoólicas proibida para menores de 18 anos (Lei 13.106/15).');
+        session.step = 'menu';
+        await sendMenu(userId);
+      }
+      break;
+
+    case 'drink_base':
+      if (['Gin', 'Whisky', 'Vodka', 'Saquê'].includes(txt)) {
+        session.drink.base = txt;
+        session.step = 'drink_gelo';
+        await sendDrinkGelo(userId);
+      } else {
+        await sendDrinkBase(userId);
+      }
+      break;
+
+    case 'drink_gelo':
+      if (txt === 'Gelo Normal' || txt === 'Gelo de Coco') {
+        session.drink.gelo = txt;
+        session.step = 'drink_energetico';
+        await sendDrinkEnergetico(userId);
+      } else if (txt === 'Gelo de Coco Saborizado') {
+        session.drink.gelo = 'Gelo de Coco Saborizado';
+        session.step = 'drink_gelo_sabor';
+        await sendDrinkGeloSaborizado(userId);
+      } else {
+        await sendDrinkGelo(userId);
+      }
+      break;
+
+    case 'drink_gelo_sabor':
+      if (['Maçã Verde', 'Melancia', 'Frutas Vermelhas'].includes(txt)) {
+        session.drink.geloSabor = txt;
+        session.step = 'drink_energetico';
+        await sendDrinkEnergetico(userId);
+      } else {
+        await sendDrinkGeloSaborizado(userId);
+      }
+      break;
+
+    case 'drink_energetico':
+      if (txt === 'Sim, quero energético!') {
+        session.step = 'drink_energetico_marca';
+        await sendDrinkEnergeticoMarca(userId);
+      } else if (txt === 'Não, obrigado') {
+        session.drink.energetico = 'Não';
+        session.step = 'drink_xarope';
+        await sendDrinkXarope(userId);
+      } else {
+        await sendDrinkEnergetico(userId);
+      }
+      break;
+
+    case 'drink_energetico_marca':
+      if (['Red Bull', 'Monster', 'Baly'].includes(txt)) {
+        session.drink.energetico = txt;
+        session.step = 'drink_xarope';
+        await sendDrinkXarope(userId);
+      } else {
+        await sendDrinkEnergeticoMarca(userId);
+      }
+      break;
+
+    case 'drink_xarope':
+      if (txt === 'Sim, quero xarope!') {
+        session.step = 'drink_xarope_sabor';
+        await sendDrinkXaropeSabor(userId);
+      } else if (txt === 'Não, obrigado') {
+        session.drink.xarope = 'Não';
+        session.step = 'drink_canudo';
+        await sendDrinkCanudo(userId);
+      } else {
+        await sendDrinkXarope(userId);
+      }
+      break;
+
+    case 'drink_xarope_sabor':
+      if (['Xarope Melancia', 'Xarope Maçã Verde', 'Xarope Frutas Vermelhas'].includes(txt)) {
+        session.drink.xarope = txt;
+        session.step = 'drink_canudo';
+        await sendDrinkCanudo(userId);
+      } else {
+        await sendDrinkXaropeSabor(userId);
+      }
+      break;
+
+    case 'drink_canudo':
+      if (txt === 'Sim, quero canudo!') {
+        session.drink.canudo = true;
+        session.step = 'drink_tamanho';
+        await sendDrinkTamanho(userId);
+      } else if (txt === 'Não, obrigado') {
+        session.drink.canudo = false;
+        session.step = 'drink_tamanho';
+        await sendDrinkTamanho(userId);
+      } else {
+        await sendDrinkCanudo(userId);
+      }
+      break;
+
+    case 'drink_tamanho': {
+      let preco = 0;
+      let tamanho = '';
+      if (txt === '300ml - R$ 15,00') { preco = 15; tamanho = '300ml'; }
+      else if (txt === '400ml - R$ 20,00') { preco = 20; tamanho = '400ml'; }
+      else if (txt === '500ml - R$ 25,00') { preco = 25; tamanho = '500ml'; }
+
+      if (preco > 0) {
+        session.drink.tamanho = `${tamanho} - R$ ${preco},00`;
+        const resumo = resumirDrink(session.drink);
+        const itemCarrinho = `🍹 Drink Personalizado (${tamanho}) - R$ ${preco},00\n   [${resumo.replace(/\n/g, ' | ')}]`;
+        session.carrinho.push(itemCarrinho);
+        session.total += preco;
+        session.step = 'menu';
+        session.drink = {};
+        await sendMessage(userId,
+          `✅ *Drink adicionado ao carrinho!*\n\n${resumo}\n\n*Valor: R$ ${preco},00*\n\nTotal do carrinho: R$ ${session.total.toFixed(2)}`,
+          [['Ver Carrinho', 'Montar Drink'], ['Voltar ao Menu']]
+        );
+      } else {
+        await sendDrinkTamanho(userId);
+      }
+      break;
+    }
+
     default:
       session.step = 'menu';
       await sendMenu(userId);
@@ -475,7 +688,7 @@ app.post('/webhook-main', async (req, res) => {
     const msg = req.body.message;
     if (!msg || !msg.text) return res.sendStatus(200);
     const userId = String(msg.chat.id);
-    const userName = msg.from?.first_name || 'Usuario';
+    const userName = msg.from?.first_name || 'Usuário';
     await processarMensagem(userId, msg.text, userName);
     res.sendStatus(200);
   } catch (err) {
@@ -500,7 +713,7 @@ app.post('/webhook', async (req, res) => {
       const uid = codigos[cod];
       const sess = uid ? sessions[uid] : null;
       if (!sess || !sess.aguardandoAtendente) {
-        await sendAgentMessage(`Codigo ${cod} nao encontrado ou ja encerrado.`);
+        await sendAgentMessage(`Código ${cod} não encontrado ou já encerrado.`);
         return res.sendStatus(200);
       }
       sess.aguardandoAtendente = false;
@@ -520,7 +733,7 @@ app.post('/webhook', async (req, res) => {
       const uid = codigos[cod];
       const sess = uid ? sessions[uid] : null;
       if (!sess || !sess.aguardandoAtendente) {
-        await sendAgentMessage(`Codigo ${cod} nao encontrado ou ja encerrado.`);
+        await sendAgentMessage(`Código ${cod} não encontrado ou já encerrado.`);
         return res.sendStatus(200);
       }
       await sendMessage(uid, `Atendente:\n${responseText}`);
