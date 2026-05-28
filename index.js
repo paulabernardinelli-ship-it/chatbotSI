@@ -87,7 +87,8 @@ async function sendMenu(chatId) {
   await sendMessage(chatId, 'Selecione uma opção:', [
     ['Ver Cardápio', 'Ver Localização'],
     ['Horário de Funcionamento', 'Falar com Atendente'],
-    ['Montar Drink', 'Sair']
+    ['Montar Drink', 'Ver Carrinho'],
+    ['Sair']
   ]);
 }
 
@@ -460,14 +461,14 @@ async function processarMensagem(userId, texto, userName) {
 
   if (txt === 'Ver Carrinho' || txt.toLowerCase() === 'carrinho') {
     if (session.carrinho.length === 0) {
-      await sendMessage(userId, 'Seu carrinho está vazio.');
+      await sendMessage(userId, 'Seu carrinho está vazio.', [['Ver Cardápio', 'Voltar ao Menu']]);
       return;
     }
     const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
-    session.step = 'checkout_entrega';
+    session.step = 'carrinho_opcoes';
     await sendMessage(userId,
-      `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
-      [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
+      `🛒 *Seu Carrinho:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
+      [['✅ Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
     );
     return;
   }
@@ -475,6 +476,56 @@ async function processarMensagem(userId, texto, userName) {
   if (txt === 'Adicionar mais itens') {
     await sendCardapio(userId);
     return;
+  }
+
+  // Remover item do carrinho (global, fora do switch)
+  if (txt === '🗑 Remover item' && session.step === 'carrinho_opcoes') {
+    if (session.carrinho.length === 0) {
+      await sendMessage(userId, 'Seu carrinho está vazio.', [['Voltar ao Menu']]);
+      return;
+    }
+    const lista = session.carrinho.map((item, i) => `${i + 1}. ${item.substring(0, 40)}...`).join('\n');
+    session.step = 'remover_item';
+    await sendMessage(userId,
+      `🗑 *Remover item*\n\nDigite o *número* do item que deseja remover:\n\n${session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n')}`,
+      [['Voltar ao Carrinho']]
+    );
+    return;
+  }
+
+  if (txt === 'Voltar ao Carrinho' || session.step === 'remover_item') {
+    if (txt === 'Voltar ao Carrinho') {
+      const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+      session.step = 'carrinho_opcoes';
+      await sendMessage(userId,
+        `🛒 *Seu Carrinho:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
+        [['✅ Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
+      );
+      return;
+    }
+    if (session.step === 'remover_item') {
+      const num = parseInt(txt);
+      if (!isNaN(num) && num >= 1 && num <= session.carrinho.length) {
+        const removido = session.carrinho[num - 1];
+        session.total -= parsePreco(removido);
+        if (session.total < 0) session.total = 0;
+        session.carrinho.splice(num - 1, 1);
+        if (session.carrinho.length === 0) {
+          session.step = 'menu';
+          await sendMessage(userId, `✅ *${removido.substring(0, 40)}* removido.\n\nSeu carrinho está vazio.`, [['Ver Cardápio', 'Voltar ao Menu']]);
+        } else {
+          const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+          session.step = 'carrinho_opcoes';
+          await sendMessage(userId,
+            `✅ Item removido!\n\n🛒 *Carrinho atualizado:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
+            [['✅ Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
+          );
+        }
+      } else {
+        await sendMessage(userId, `Digite um número entre 1 e ${session.carrinho.length}:`, [['Voltar ao Carrinho']]);
+      }
+      return;
+    }
   }
 
   switch (session.step) {
@@ -495,12 +546,11 @@ async function processarMensagem(userId, texto, userName) {
         session.step = 'drink_verificar_idade';
         await sendMessage(userId, 'Para montar um drink, confirme:\n\nVocê tem mais de 18 anos?', [['Sim, tenho 18+', 'Não']]);
       } else if (txt === 'Sair') {
-        session.step = 'menu';
-        session.carrinho = [];
-        session.total = 0;
-        session.drink = {};
-        session.entrega = null;
-        await sendMessage(userId, 'A Adega Desce Outra agradece o contato! Até logo!');
+        session.step = 'avaliacao';
+        await sendMessage(userId,
+          '⭐ *Antes de ir, avalie nosso atendimento!*\n\nComo foi sua experiência hoje?',
+          [['⭐ Ruim', '⭐⭐ Regular', '⭐⭐⭐ Bom'], ['⭐⭐⭐⭐ Muito bom', '⭐⭐⭐⭐⭐ Excelente']]
+        );
       } else {
         await sendMenu(userId);
       }
@@ -627,6 +677,42 @@ async function processarMensagem(userId, texto, userName) {
 
     // ─── CHECKOUT ─────────────────────────────────────────────────────────
 
+    case 'carrinho_opcoes': {
+      if (txt === '✅ Finalizar pedido') {
+        const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+        session.step = 'checkout_entrega';
+        await sendMessage(userId,
+          `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
+          [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
+        );
+      } else if (txt === '❌ Cancelar pedido') {
+        session.step = 'confirmar_cancelar';
+        await sendMessage(userId,
+          '⚠️ Tem certeza que deseja *cancelar o pedido*? Todos os itens serão removidos.',
+          [['Sim, cancelar pedido', 'Não, manter pedido']]
+        );
+      }
+      break;
+    }
+
+    case 'confirmar_cancelar': {
+      if (txt === 'Sim, cancelar pedido') {
+        session.carrinho = [];
+        session.total = 0;
+        session.step = 'menu';
+        await sendMessage(userId, '❌ Pedido cancelado. Seu carrinho foi esvaziado.');
+        await sendMenu(userId);
+      } else {
+        const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
+        session.step = 'carrinho_opcoes';
+        await sendMessage(userId,
+          `🛒 *Seu Carrinho:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
+          [['✅ Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
+        );
+      }
+      break;
+    }
+
     case 'checkout_entrega': {
       if (txt === '🏠 Retirada no local') {
         session.entrega = 'retirada';
@@ -639,10 +725,9 @@ async function processarMensagem(userId, texto, userName) {
         );
       } else if (txt === '🛵 Entrega') {
         session.entrega = 'entrega';
-        session.step = 'checkout_confirmar_frete';
+        session.step = 'checkout_endereco';
         await sendMessage(userId,
-          `🛵 *Entrega*\n\nO frete fixo é de *R$ ${FRETE_FIXO.toFixed(2)}*.\n\nSubtotal: R$ ${session.total.toFixed(2)}\nFrete: R$ ${FRETE_FIXO.toFixed(2)}\n*Total: R$ ${(session.total + FRETE_FIXO).toFixed(2)}*\n\nDeseja continuar?`,
-          [['✅ Aceito o frete', '❌ Cancelar']]
+          '🛵 *Entrega*\n\nPor favor, *digite seu endereço completo* para entrega:\n\n_(Rua, número, bairro, complemento)_'
         );
       } else {
         const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
@@ -650,6 +735,21 @@ async function processarMensagem(userId, texto, userName) {
           `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
           [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
         );
+      }
+      break;
+    }
+
+    case 'checkout_endereco': {
+      // Qualquer texto é aceito como endereço
+      if (txt && txt.length > 5) {
+        session.enderecoEntrega = txt;
+        session.step = 'checkout_confirmar_frete';
+        await sendMessage(userId,
+          `🛵 *Entrega*\n\n📍 Endereço: ${txt}\n\nFrete fixo: *R$ ${FRETE_FIXO.toFixed(2)}*\n\nSubtotal: R$ ${session.total.toFixed(2)}\nFrete: R$ ${FRETE_FIXO.toFixed(2)}\n*Total: R$ ${(session.total + FRETE_FIXO).toFixed(2)}*\n\nDeseja continuar?`,
+          [['✅ Aceito o frete', '❌ Cancelar']]
+        );
+      } else {
+        await sendMessage(userId, 'Por favor, digite seu endereço completo (Rua, número, bairro, complemento):');
       }
       break;
     }
@@ -690,7 +790,7 @@ async function processarMensagem(userId, texto, userName) {
         await sendAgentMessage(
           `🛒 *NOVO PEDIDO — #${codPedido}*\n\n` +
           `👤 Cliente: ${userName}\n` +
-          `📦 Tipo: ${tipoEntrega}\n\n` +
+          `📦 Tipo: ${tipoEntrega}${session.entrega === 'entrega' && session.enderecoEntrega ? '\n📍 Endereço: ' + session.enderecoEntrega : ''}\n\n` +
           `${resumo}\n\n` +
           `${session.entrega === 'entrega' ? `Frete: R$ ${FRETE_FIXO.toFixed(2)}\n` : ''}` +
           `*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\n` +
@@ -851,6 +951,24 @@ async function processarMensagem(userId, texto, userName) {
         );
       } else {
         await sendDrinkTamanho(userId);
+      }
+      break;
+    }
+
+    case 'avaliacao': {
+      const notas = ['⭐ Ruim', '⭐⭐ Regular', '⭐⭐⭐ Bom', '⭐⭐⭐⭐ Muito bom', '⭐⭐⭐⭐⭐ Excelente'];
+      if (notas.includes(txt)) {
+        await sendAgentMessage(`⭐ *Avaliação recebida*\n\nCliente: ${userName}\nNota: ${txt}`);
+        session.step = 'menu';
+        session.carrinho = [];
+        session.total = 0;
+        session.drink = {};
+        session.entrega = null;
+        await sendMessage(userId, `Obrigado pela avaliação: *${txt}*!\n\nA Adega Desce Outra agradece o contato! Até logo! 🍻`);
+      } else {
+        await sendMessage(userId, 'Por favor, escolha uma opção:',
+          [['⭐ Ruim', '⭐⭐ Regular', '⭐⭐⭐ Bom'], ['⭐⭐⭐⭐ Muito bom', '⭐⭐⭐⭐⭐ Excelente']]
+        );
       }
       break;
     }
