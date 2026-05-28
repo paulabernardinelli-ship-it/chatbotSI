@@ -176,63 +176,63 @@ async function sendSalgadinhos(chatId) {
 
 async function sendDrinkBase(chatId) {
   await sendMessage(chatId,
-    '🍹 *Monte seu Drink*\n\nEscolha a *base* do seu drink:',
+    '*Monte seu Drink*\n\nEscolha a *base* do seu drink:',
     [['Gin', 'Whisky'], ['Vodka', 'Saquê'], ['Voltar ao Menu']]
   );
 }
 
 async function sendDrinkGelo(chatId) {
   await sendMessage(chatId,
-    '🧊 Escolha o tipo de *gelo*:',
+    'Escolha o tipo de *gelo*:',
     [['Gelo Normal', 'Gelo de Coco'], ['Gelo de Coco Saborizado'], ['Voltar ao Menu']]
   );
 }
 
 async function sendDrinkGeloSaborizado(chatId) {
   await sendMessage(chatId,
-    '🍉 Escolha o *sabor* do gelo de coco saborizado:',
+    'Escolha o *sabor* do gelo de coco saborizado:',
     [['Maçã Verde', 'Melancia'], ['Frutas Vermelhas'], ['Voltar ao Menu']]
   );
 }
 
 async function sendDrinkEnergetico(chatId) {
   await sendMessage(chatId,
-    '⚡ Deseja adicionar *energético*?',
+    'Deseja adicionar *energético*?',
     [['Sim, quero energético!', 'Não, obrigado'], ['Voltar ao Menu']]
   );
 }
 
 async function sendDrinkEnergeticoMarca(chatId) {
   await sendMessage(chatId,
-    '⚡ Escolha o *energético*:',
+    'Escolha o *energético*:',
     [['Red Bull', 'Monster'], ['Baly'], ['Voltar ao Menu']]
   );
 }
 
 async function sendDrinkXarope(chatId) {
   await sendMessage(chatId,
-    '🍬 Deseja adicionar *xarope*?',
+    'Deseja adicionar *xarope*?',
     [['Sim, quero xarope!', 'Não, obrigado'], ['Voltar ao Menu']]
   );
 }
 
 async function sendDrinkXaropeSabor(chatId) {
   await sendMessage(chatId,
-    '🍬 Escolha o *sabor* do xarope:',
+    'Escolha o *sabor* do xarope:',
     [['Xarope Melancia', 'Xarope Maçã Verde'], ['Xarope Frutas Vermelhas'], ['Voltar ao Menu']]
   );
 }
 
 async function sendDrinkCanudo(chatId) {
   await sendMessage(chatId,
-    '🌿 Deseja adicionar *canudo sustentável*?',
+    'Deseja adicionar *canudo sustentável*?',
     [['Sim, quero canudo!', 'Não, obrigado'], ['Voltar ao Menu']]
   );
 }
 
 async function sendDrinkTamanho(chatId) {
   await sendMessage(chatId,
-    '📏 Escolha o *tamanho* do drink:\n\n300ml - R$ 15,00\n400ml - R$ 20,00\n500ml - R$ 25,00',
+    'Escolha o *tamanho* do drink:\n\n300ml - R$ 15,00\n400ml - R$ 20,00\n500ml - R$ 25,00',
     [['300ml - R$ 15,00', '400ml - R$ 20,00'], ['500ml - R$ 25,00'], ['Voltar ao Menu']]
   );
 }
@@ -285,7 +285,7 @@ async function enviarQrCodePix(chatId, valorTotal) {
   const pixPayload = gerarPixPayload(PIX_KEY, valorTotal, 'Adega Desce Outra', 'Carapicuiba');
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixPayload)}`;
   await sendPhoto(chatId, qrUrl,
-    `💸 *Pagamento via PIX*\n\n` +
+    `*Pagamento via PIX*\n\n` +
     `Valor: *R$ ${valorTotal.toFixed(2)}*\n\n` +
     `Chave PIX: \`${PIX_KEY}\`\n\n` +
     `Escaneie o QR Code acima ou copie a chave.\n\n` +
@@ -468,7 +468,7 @@ async function processarMensagem(userId, texto, userName) {
     session.step = 'carrinho_opcoes';
     await sendMessage(userId,
       `🛒 *Seu Carrinho:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
-      [['✅ Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
+      [['Finalizar pedido'], ['🗑 Remover item', 'Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
     );
     return;
   }
@@ -479,7 +479,7 @@ async function processarMensagem(userId, texto, userName) {
   }
 
   // Remover item do carrinho (global, fora do switch)
-  if (txt === '🗑 Remover item' && session.step === 'carrinho_opcoes') {
+  if (txt === 'Remover item' && session.step === 'carrinho_opcoes') {
     if (session.carrinho.length === 0) {
       await sendMessage(userId, 'Seu carrinho está vazio.', [['Voltar ao Menu']]);
       return;
@@ -487,7 +487,7 @@ async function processarMensagem(userId, texto, userName) {
     const lista = session.carrinho.map((item, i) => `${i + 1}. ${item.substring(0, 40)}...`).join('\n');
     session.step = 'remover_item';
     await sendMessage(userId,
-      `🗑 *Remover item*\n\nDigite o *número* do item que deseja remover:\n\n${session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n')}`,
+      `*Remover item*\n\nDigite o *número* do item que deseja remover:\n\n${session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n')}`,
       [['Voltar ao Carrinho']]
     );
     return;
@@ -499,7 +499,7 @@ async function processarMensagem(userId, texto, userName) {
       session.step = 'carrinho_opcoes';
       await sendMessage(userId,
         `🛒 *Seu Carrinho:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
-        [['✅ Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
+        [['Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
       );
       return;
     }
@@ -512,13 +512,13 @@ async function processarMensagem(userId, texto, userName) {
         session.carrinho.splice(num - 1, 1);
         if (session.carrinho.length === 0) {
           session.step = 'menu';
-          await sendMessage(userId, `✅ *${removido.substring(0, 40)}* removido.\n\nSeu carrinho está vazio.`, [['Ver Cardápio', 'Voltar ao Menu']]);
+          await sendMessage(userId, `*${removido.substring(0, 40)}* removido.\n\nSeu carrinho está vazio.`, [['Ver Cardápio', 'Voltar ao Menu']]);
         } else {
           const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
           session.step = 'carrinho_opcoes';
           await sendMessage(userId,
-            `✅ Item removido!\n\n🛒 *Carrinho atualizado:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
-            [['✅ Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
+            `Item removido!\n\n🛒 *Carrinho atualizado:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
+            [['Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
           );
         }
       } else {
@@ -590,8 +590,8 @@ async function processarMensagem(userId, texto, userName) {
       if (txt === 'Sim, tenho 18+') {
         session.step = 'sugestao_ou_cardapio';
         await sendMessage(userId,
-          '🍺 Quer receber uma *sugestão personalizada* de bebida conforme seu paladar?\n\nOu prefere ver o cardápio completo?',
-          [['✨ Quero uma sugestão!', '📋 Ver cardápio completo']]
+          'Quer receber uma *sugestão personalizada* de bebida conforme seu paladar?\n\nOu prefere ver o cardápio completo?',
+          [['Quero uma sugestão!', 'Ver cardápio completo']]
         );
       } else {
         await sendMessage(userId, 'Venda de bebidas alcoólicas proibida para menores de 18 anos (Lei 13.106/15).');
@@ -601,18 +601,18 @@ async function processarMensagem(userId, texto, userName) {
       break;
 
     case 'sugestao_ou_cardapio':
-      if (txt === '✨ Quero uma sugestão!') {
+      if (txt === 'Quero uma sugestão!') {
         session.step = 'perfil_bebida';
         await sendMessage(userId,
           'Qual o seu perfil de paladar?\n\nEscolha uma opção para ver sugestões personalizadas:',
           [['Suave', 'Mediano', 'Encorpado'], ['Voltar ao Cardápio']]
         );
-      } else if (txt === '📋 Ver cardápio completo') {
+      } else if (txt === 'Ver cardápio completo') {
         session.step = 'alcoolicas';
         await sendBebidasAlcoolicas(userId);
       } else {
         await sendMessage(userId, 'Escolha uma opção:',
-          [['✨ Quero uma sugestão!', '📋 Ver cardápio completo']]
+          [['Quero uma sugestão!', 'Ver cardápio completo']]
         );
       }
       break;
@@ -678,12 +678,12 @@ async function processarMensagem(userId, texto, userName) {
     // ─── CHECKOUT ─────────────────────────────────────────────────────────
 
     case 'carrinho_opcoes': {
-      if (txt === '✅ Finalizar pedido') {
+      if (txt === 'Finalizar pedido') {
         const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
         session.step = 'checkout_entrega';
         await sendMessage(userId,
           `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
-          [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
+          [['Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
         );
       } else if (txt === '❌ Cancelar pedido') {
         session.step = 'confirmar_cancelar';
@@ -707,7 +707,7 @@ async function processarMensagem(userId, texto, userName) {
         session.step = 'carrinho_opcoes';
         await sendMessage(userId,
           `🛒 *Seu Carrinho:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
-          [['✅ Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
+          [['Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
         );
       }
       break;
@@ -720,20 +720,20 @@ async function processarMensagem(userId, texto, userName) {
         session.step = 'checkout_confirmar';
         const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
         await sendMessage(userId,
-          `✅ *Retirada no local*\n\n${resumo}\n\n*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\nConfirmar pedido?`,
+          `*Retirada no local*\n\n${resumo}\n\n*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\nConfirmar pedido?`,
           [['✅ Confirmar pedido', '❌ Cancelar']]
         );
       } else if (txt === '🛵 Entrega') {
         session.entrega = 'entrega';
         session.step = 'checkout_endereco';
         await sendMessage(userId,
-          '🛵 *Entrega*\n\nPor favor, *digite seu endereço completo* para entrega:\n\n_(Rua, número, bairro, complemento)_'
+          '*Entrega*\n\nPor favor, *digite seu endereço completo* para entrega:\n\n_(Rua, número, bairro, complemento)_'
         );
       } else {
         const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
         await sendMessage(userId,
           `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
-          [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
+          [['Retirada no local', 'Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
         );
       }
       break;
@@ -745,8 +745,8 @@ async function processarMensagem(userId, texto, userName) {
         session.enderecoEntrega = txt;
         session.step = 'checkout_confirmar_frete';
         await sendMessage(userId,
-          `🛵 *Entrega*\n\n📍 Endereço: ${txt}\n\nFrete fixo: *R$ ${FRETE_FIXO.toFixed(2)}*\n\nSubtotal: R$ ${session.total.toFixed(2)}\nFrete: R$ ${FRETE_FIXO.toFixed(2)}\n*Total: R$ ${(session.total + FRETE_FIXO).toFixed(2)}*\n\nDeseja continuar?`,
-          [['✅ Aceito o frete', '❌ Cancelar']]
+          `*Entrega*\n\n📍 Endereço: ${txt}\n\nFrete fixo: *R$ ${FRETE_FIXO.toFixed(2)}*\n\nSubtotal: R$ ${session.total.toFixed(2)}\nFrete: R$ ${FRETE_FIXO.toFixed(2)}\n*Total: R$ ${(session.total + FRETE_FIXO).toFixed(2)}*\n\nDeseja continuar?`,
+          [['Aceito o frete', '❌ Cancelar']]
         );
       } else {
         await sendMessage(userId, 'Por favor, digite seu endereço completo (Rua, número, bairro, complemento):');
@@ -755,42 +755,42 @@ async function processarMensagem(userId, texto, userName) {
     }
 
     case 'checkout_confirmar_frete': {
-      if (txt === '✅ Aceito o frete') {
+      if (txt === 'Aceito o frete') {
         session.totalComFrete = session.total + FRETE_FIXO;
         session.step = 'checkout_confirmar';
         const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
         await sendMessage(userId,
-          `🛵 *Entrega confirmada*\n\n${resumo}\n\nFrete: R$ ${FRETE_FIXO.toFixed(2)}\n*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\nConfirmar pedido?`,
-          [['✅ Confirmar pedido', '❌ Cancelar']]
+          `*Entrega confirmada*\n\n${resumo}\n\nFrete: R$ ${FRETE_FIXO.toFixed(2)}\n*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\nConfirmar pedido?`,
+          [['Confirmar pedido', '❌ Cancelar']]
         );
       } else if (txt === '❌ Cancelar') {
         session.step = 'checkout_entrega';
         const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
         await sendMessage(userId,
           `*Resumo do Pedido:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nComo deseja receber?`,
-          [['🏠 Retirada no local', '🛵 Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
+          [['Retirada no local', 'Entrega'], ['Adicionar mais itens', 'Voltar ao Menu']]
         );
       } else {
-        await sendMessage(userId, 'Escolha uma opção:', [['✅ Aceito o frete', '❌ Cancelar']]);
+        await sendMessage(userId, 'Escolha uma opção:', [['Aceito o frete', '❌ Cancelar']]);
       }
       break;
     }
 
     case 'checkout_confirmar': {
-      if (txt === '✅ Confirmar pedido') {
+      if (txt === 'Confirmar pedido') {
         // Gera código de pedido
         const codPedido = gerarCodigo();
         pedidosPendentes[codPedido] = userId;
         userPedidoCod[userId] = codPedido;
 
         const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
-        const tipoEntrega = session.entrega === 'entrega' ? '🛵 Entrega' : '🏠 Retirada no local';
+        const tipoEntrega = session.entrega === 'entrega' ? 'Entrega' : 'Retirada no local';
 
         // Notifica atendente
         await sendAgentMessage(
           `🛒 *NOVO PEDIDO — #${codPedido}*\n\n` +
           `👤 Cliente: ${userName}\n` +
-          `📦 Tipo: ${tipoEntrega}${session.entrega === 'entrega' && session.enderecoEntrega ? '\n📍 Endereço: ' + session.enderecoEntrega : ''}\n\n` +
+          `Tipo: ${tipoEntrega}${session.entrega === 'entrega' && session.enderecoEntrega ? '\n📍 Endereço: ' + session.enderecoEntrega : ''}\n\n` +
           `${resumo}\n\n` +
           `${session.entrega === 'entrega' ? `Frete: R$ ${FRETE_FIXO.toFixed(2)}\n` : ''}` +
           `*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\n` +
@@ -800,7 +800,7 @@ async function processarMensagem(userId, texto, userName) {
 
         // Envia QR Code PIX para o usuário
         session.step = 'aguardando_pagamento';
-        await sendMessage(userId, `✅ *Pedido #${codPedido} recebido!*\n\nAgora realize o pagamento via PIX para confirmar.\n\n${tipoEntrega}\n*Total: R$ ${session.totalComFrete.toFixed(2)}*`);
+        await sendMessage(userId, `*Pedido #${codPedido} recebido!*\n\nAgora realize o pagamento via PIX para confirmar.\n\n${tipoEntrega}\n*Total: R$ ${session.totalComFrete.toFixed(2)}*`);
         await enviarQrCodePix(userId, session.totalComFrete);
 
       } else if (txt === '❌ Cancelar') {
@@ -812,7 +812,7 @@ async function processarMensagem(userId, texto, userName) {
         await sendMessage(userId, 'Pedido cancelado. Que pena! Se quiser, pode montar um novo pedido.');
         await sendMenu(userId);
       } else {
-        await sendMessage(userId, 'Escolha uma opção:', [['✅ Confirmar pedido', '❌ Cancelar']]);
+        await sendMessage(userId, 'Escolha uma opção:', [['Confirmar pedido', '❌ Cancelar']]);
       }
       break;
     }
@@ -940,13 +940,13 @@ async function processarMensagem(userId, texto, userName) {
       if (preco > 0) {
         session.drink.tamanho = `${tamanho} - R$ ${preco},00`;
         const resumo = resumirDrink(session.drink);
-        const itemCarrinho = `🍹 Drink Personalizado (${tamanho}) - R$ ${preco},00\n   [${resumo.replace(/\n/g, ' | ')}]`;
+        const itemCarrinho = `Drink Personalizado (${tamanho}) - R$ ${preco},00\n   [${resumo.replace(/\n/g, ' | ')}]`;
         session.carrinho.push(itemCarrinho);
         session.total += preco;
         session.step = 'menu';
         session.drink = {};
         await sendMessage(userId,
-          `✅ *Drink adicionado ao carrinho!*\n\n${resumo}\n\n*Valor: R$ ${preco},00*\n\nTotal do carrinho: R$ ${session.total.toFixed(2)}`,
+          `*Drink adicionado ao carrinho!*\n\n${resumo}\n\n*Valor: R$ ${preco},00*\n\nTotal do carrinho: R$ ${session.total.toFixed(2)}`,
           [['Ver Carrinho', 'Montar Drink'], ['Voltar ao Menu']]
         );
       } else {
@@ -1020,9 +1020,9 @@ app.post('/webhook', async (req, res) => {
       sess.total = 0;
       sess.totalComFrete = 0;
       sess.entrega = null;
-      await sendAgentMessage(`✅ Pedido *#${cod}* confirmado! Cliente notificado.`);
+      await sendAgentMessage(`Pedido *#${cod}* confirmado! Cliente notificado.`);
       await sendMessage(uid,
-        `🎉 *Pagamento confirmado!*\n\nSeu pedido *#${cod}* foi confirmado e está sendo preparado.\n\nObrigado por comprar na Adega Desce Outra! 🍻`
+        `*Pagamento confirmado!*\n\nSeu pedido *#${cod}* foi confirmado e está sendo preparado.\n\nObrigado por comprar na Adega Desce Outra! 🍻`
       );
       await sendMenu(uid);
       return res.sendStatus(200);
@@ -1096,8 +1096,8 @@ app.post('/webhook', async (req, res) => {
         });
 
       let msg = '';
-      if (pendentes.length > 0) msg += `💳 *Pedidos aguardando confirmação:*\n${pendentes.join('\n')}\n\n`;
-      if (ativos.length > 0) msg += `💬 *Atendimentos ativos:*\n${ativos.join('\n')}\n\nUse /reply CODIGO para responder.`;
+      if (pendentes.length > 0) msg += `*Pedidos aguardando confirmação:*\n${pendentes.join('\n')}\n\n`;
+      if (ativos.length > 0) msg += `*Atendimentos ativos:*\n${ativos.join('\n')}\n\nUse /reply CODIGO para responder.`;
       if (!msg) msg = 'Nenhum pedido ou atendimento ativo no momento.';
       await sendAgentMessage(msg);
     }
