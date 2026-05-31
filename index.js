@@ -58,7 +58,8 @@ function getSession(userId) {
       userName: '',
       drink: {},
       entrega: null,
-      totalComFrete: 0
+      totalComFrete: 0,
+      maioridadeConfirmada: false
     };
   }
   return sessions[userId];
@@ -441,6 +442,7 @@ async function processarMensagem(userId, texto, userName) {
     session.total = 0;
     session.drink = {};
     session.entrega = null;
+    session.maioridadeConfirmada = false;
     await sendMessage(userId, 'Olá! Bem-vindo à Adega Desce Outra. Como posso ajudar?');
     await sendMenu(userId);
     return;
@@ -543,8 +545,14 @@ async function processarMensagem(userId, texto, userName) {
         session.step = 'confirmar_atendente';
         await sendMessage(userId, 'Deseja mesmo falar com um atendente?', [['Sim', 'Não']]);
       } else if (txt === 'Montar Drink') {
-        session.step = 'drink_verificar_idade';
-        await sendMessage(userId, 'Para montar um drink, confirme:\n\nVocê tem mais de 18 anos?', [['Sim, tenho 18+', 'Não']]);
+        session.drink = {};
+        if (session.maioridadeConfirmada) {
+          session.step = 'drink_base';
+          await sendDrinkBase(userId);
+        } else {
+          session.step = 'drink_verificar_idade';
+          await sendMessage(userId, 'Para montar um drink, confirme:\n\nVocê tem mais de 18 anos?', [['Sim, tenho 18+', 'Não']]);
+        }
       } else if (txt === 'Sair') {
         session.step = 'avaliacao';
         await sendMessage(userId,
@@ -573,8 +581,16 @@ async function processarMensagem(userId, texto, userName) {
 
     case 'cardapio':
       if (txt === 'Bebidas alcoólicas' || txt === 'Bebidas alcoolicas') {
-        session.step = 'verificar_idade';
-        await sendMessage(userId, 'Para acessar o cardápio de bebidas alcoólicas, confirme:\n\nVocê tem mais de 18 anos?', [['Sim, tenho 18+', 'Não']]);
+        if (session.maioridadeConfirmada) {
+          session.step = 'sugestao_ou_cardapio';
+          await sendMessage(userId,
+            'Quer receber uma *sugestão personalizada* de bebida conforme seu paladar?\n\nOu prefere ver o cardápio completo?',
+            [['Quero uma sugestão!', 'Ver cardápio completo']]
+          );
+        } else {
+          session.step = 'verificar_idade';
+          await sendMessage(userId, 'Para acessar o cardápio de bebidas alcoólicas, confirme:\n\nVocê tem mais de 18 anos?', [['Sim, tenho 18+', 'Não']]);
+        }
       } else if (txt === 'Bebidas não alcoólicas' || txt === 'Bebidas nao alcoolicas') {
         session.step = 'nao_alcoolicas';
         await sendNaoAlcoolicas(userId);
@@ -588,6 +604,7 @@ async function processarMensagem(userId, texto, userName) {
 
     case 'verificar_idade':
       if (txt === 'Sim, tenho 18+') {
+        session.maioridadeConfirmada = true;
         session.step = 'sugestao_ou_cardapio';
         await sendMessage(userId,
           'Quer receber uma *sugestão personalizada* de bebida conforme seu paladar?\n\nOu prefere ver o cardápio completo?',
@@ -826,6 +843,7 @@ async function processarMensagem(userId, texto, userName) {
 
     case 'drink_verificar_idade':
       if (txt === 'Sim, tenho 18+') {
+        session.maioridadeConfirmada = true;
         session.step = 'drink_base';
         session.drink = {};
         await sendDrinkBase(userId);
