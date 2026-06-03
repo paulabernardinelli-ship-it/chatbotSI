@@ -470,7 +470,7 @@ async function processarMensagem(userId, texto, userName) {
     session.step = 'carrinho_opcoes';
     await sendMessage(userId,
       `🛒 *Seu Carrinho:*\n\n${resumo}\n\n*Subtotal: R$ ${session.total.toFixed(2)}*\n\nO que deseja fazer?`,
-      [['Finalizar pedido'], ['🗑 Remover item', 'Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
+      [['Finalizar pedido'], ['🗑 Remover item', '❌ Cancelar pedido'], ['Adicionar mais itens', 'Voltar ao Menu']]
     );
     return;
   }
@@ -481,7 +481,7 @@ async function processarMensagem(userId, texto, userName) {
   }
 
   // Remover item do carrinho (global, fora do switch)
-  if (txt === 'Remover item' && session.step === 'carrinho_opcoes') {
+  if (txt === '🗑 Remover item' && session.step === 'carrinho_opcoes') {
     if (session.carrinho.length === 0) {
       await sendMessage(userId, 'Seu carrinho está vazio.', [['Voltar ao Menu']]);
       return;
@@ -731,16 +731,16 @@ async function processarMensagem(userId, texto, userName) {
     }
 
     case 'checkout_entrega': {
-      if (txt === '🏠 Retirada no local') {
+      if (txt === 'Retirada no local') {
         session.entrega = 'retirada';
         session.totalComFrete = session.total;
         session.step = 'checkout_confirmar';
         const resumo = session.carrinho.map((item, i) => `${i + 1}. ${item}`).join('\n');
         await sendMessage(userId,
           `*Retirada no local*\n\n${resumo}\n\n*Total: R$ ${session.totalComFrete.toFixed(2)}*\n\nConfirmar pedido?`,
-          [['✅ Confirmar pedido', '❌ Cancelar']]
+          [['Confirmar pedido', '❌ Cancelar']]
         );
-      } else if (txt === '🛵 Entrega') {
+      } else if (txt === 'Entrega') {
         session.entrega = 'entrega';
         session.step = 'checkout_endereco';
         await sendMessage(userId,
